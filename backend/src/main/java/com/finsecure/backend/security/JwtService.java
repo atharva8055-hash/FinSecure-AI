@@ -23,44 +23,115 @@ public class JwtService {
 
     private SecretKey signingKey;
 
+
     @PostConstruct
     public void init() {
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
-        signingKey = Keys.hmacShaKeyFor(keyBytes);
+
+        byte[] keyBytes =
+                Decoders.BASE64.decode(secret);
+
+        signingKey =
+                Keys.hmacShaKeyFor(keyBytes);
+
+        System.out.println(
+                "JWT service initialized successfully."
+        );
+
+        System.out.println(
+                "JWT expiration: "
+                        + jwtExpiration
+                        + " ms"
+        );
     }
+
 
     public String generateToken(String email) {
 
         return Jwts.builder()
+
                 .subject(email)
+
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+
+                .expiration(
+                        new Date(
+                                System.currentTimeMillis()
+                                        + jwtExpiration
+                        )
+                )
+
                 .signWith(signingKey)
+
                 .compact();
     }
 
+
     public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+
+        return extractClaim(
+                token,
+                Claims::getSubject
+        );
     }
 
-    public boolean isTokenValid(String token, String email) {
-        return extractUsername(token).equals(email) && !isTokenExpired(token);
+
+    public boolean isTokenValid(
+            String token,
+            String email) {
+
+        try {
+
+            String username =
+                    extractUsername(token);
+
+            return username != null
+                    && username.equals(email)
+                    && !isTokenExpired(token);
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "JWT validation error: "
+                            + e.getMessage()
+            );
+
+            return false;
+        }
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+
+    private boolean isTokenExpired(
+            String token) {
+
+        return extractExpiration(token)
+                .before(new Date());
     }
 
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+
+    private Date extractExpiration(
+            String token) {
+
+        return extractClaim(
+                token,
+                Claims::getExpiration
+        );
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> resolver) {
-        Claims claims = Jwts.parser()
-                .verifyWith(signingKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+
+    private <T> T extractClaim(
+            String token,
+            Function<Claims, T> resolver) {
+
+        Claims claims =
+                Jwts.parser()
+
+                        .verifyWith(signingKey)
+
+                        .build()
+
+                        .parseSignedClaims(token)
+
+                        .getPayload();
 
         return resolver.apply(claims);
     }
